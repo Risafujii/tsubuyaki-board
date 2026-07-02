@@ -54,7 +54,12 @@ public class PostService {
         if (keyword == null || keyword.isBlank()) {
             return latest();
         }
-        return toDomainList(repository.searchActiveByKeyword(keyword.strip(), searchPage()));
+        String strippedKeyword = keyword.strip();
+        return toDomainList(repository
+                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
+                        strippedKeyword,
+                        strippedKeyword,
+                        searchPage()));
     }
 
     public List<PostDetail> findPostDetails(String keyword) {

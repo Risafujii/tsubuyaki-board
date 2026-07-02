@@ -169,7 +169,11 @@ class PostRepositoryTest {
         persistPost("alice", "Java の共有", Instant.parse("2026-06-26T09:00:00Z"));
         persistPost("spring-user", "本文には含まない", Instant.parse("2026-06-26T10:00:00Z"));
 
-        List<PostEntity> posts = postRepository.searchActiveByKeyword("Spring", PageRequest.of(0, 50));
+        List<PostEntity> posts = postRepository
+                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
+                        "Spring",
+                        "Spring",
+                        PageRequest.of(0, 50));
 
         assertThat(posts)
                 .extracting(PostEntity::getAuthor)
@@ -181,7 +185,11 @@ class PostRepositoryTest {
     void 投稿検索_本文と投稿者名の両方に一致する投稿_重複せず1件だけ返す() {
         persistPost("spring-user", "Spring Boot の共有", Instant.parse("2026-06-26T09:00:00Z"));
 
-        List<PostEntity> posts = postRepository.searchActiveByKeyword("Spring", PageRequest.of(0, 50));
+        List<PostEntity> posts = postRepository
+                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
+                        "Spring",
+                        "Spring",
+                        PageRequest.of(0, 50));
 
         assertThat(posts)
                 .extracting(PostEntity::getAuthor)

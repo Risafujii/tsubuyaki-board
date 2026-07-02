@@ -153,4 +153,61 @@ class ApiPostControllerTest {
                 .andExpect(jsonPath("$.fieldErrors.author").value("投稿者名を入力してください"))
                 .andExpect(jsonPath("$.fieldErrors.body").value("本文を入力してください"));
     }
+
+    @Test
+    @DisplayName("投稿API_POST_api_posts_avatarColor不正は400を返す")
+    void 投稿API_POST_api_posts_avatarColor不正は400を返す() throws Exception {
+        mockMvc.perform(post("/api/posts")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "author": "alice",
+                                  "avatarColor": "BLACK",
+                                  "body": "本文です"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("入力内容を確認してください"))
+                .andExpect(jsonPath("$.path").value("/api/posts"))
+                .andExpect(jsonPath("$.fieldErrors.avatarColor").value("アバター色を選択してください"));
+    }
+
+    @Test
+    @DisplayName("投稿API_POST_api_posts_JSON不正は400を返す")
+    void 投稿API_POST_api_posts_JSON不正は400を返す() throws Exception {
+        mockMvc.perform(post("/api/posts")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "author": "alice",
+                                  "avatarColor": "BLUE",
+                                  "body": "本文です"
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("リクエストJSONを確認してください"))
+                .andExpect(jsonPath("$.path").value("/api/posts"));
+    }
+
+    @Test
+    @DisplayName("投稿API_POST_api_posts_ContentType不正は415を返す")
+    void 投稿API_POST_api_posts_ContentType不正は415を返す() throws Exception {
+        mockMvc.perform(post("/api/posts")
+                        .with(csrf())
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("plain text"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value(415))
+                .andExpect(jsonPath("$.error").value("Unsupported Media Type"))
+                .andExpect(jsonPath("$.message").value("Content-Type は application/json を指定してください"))
+                .andExpect(jsonPath("$.path").value("/api/posts"));
+    }
 }

@@ -3,9 +3,14 @@ package com.example.tsubuyaki.controller;
 import com.example.tsubuyaki.domain.Post;
 import com.example.tsubuyaki.service.PostService;
 import com.example.tsubuyaki.service.PostDetail;
+import com.example.tsubuyaki.web.dto.ApiErrorResponse;
 import com.example.tsubuyaki.web.dto.ApiPostCreateRequest;
 import com.example.tsubuyaki.web.dto.ApiPostResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +38,7 @@ public class ApiPostController {
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "投稿一覧を取得する", description = "論理削除されていない投稿を新着順に最大50件返します。")
+    @ApiResponse(responseCode = "200", description = "投稿一覧")
     public List<ApiPostResponse> list() {
         return postService.latestDetails().stream()
                 .map(ApiPostResponse::from)
@@ -41,12 +47,36 @@ public class ApiPostController {
 
     @GetMapping(path = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "投稿詳細を取得する", description = "論理削除されていない投稿をIDで取得します。")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "投稿詳細"),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "投稿が見つからない",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public ApiPostResponse detail(@PathVariable Long id) {
         return ApiPostResponse.from(postService.getDetail(id));
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "投稿を作成する", description = "投稿者名、アバター色、本文を指定して投稿を作成します。")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "投稿作成成功"),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "入力内容が不正",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(
+                    responseCode = "415",
+                    description = "Content-Typeが不正",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public ResponseEntity<ApiPostResponse> create(@Valid @RequestBody ApiPostCreateRequest request) {
         Post post = postService.create(request.author(), request.avatarColor(), request.body());
         URI location = URI.create("/api/posts/" + post.getId());
