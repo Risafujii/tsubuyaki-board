@@ -21,13 +21,11 @@ public class LikeService {
 
     @Transactional(noRollbackFor = DataIntegrityViolationException.class)
     public void toggleLike(Long postId, String clientHash) {
+        ensurePostExists(postId);
         likeRepository.findByPostIdAndClientHash(postId, clientHash)
                 .ifPresentOrElse(
                         likeRepository::delete,
-                        () -> {
-                            ensurePostExists(postId);
-                            saveLikeOrDeleteConcurrentLike(postId, clientHash);
-                        });
+                        () -> saveLikeOrDeleteConcurrentLike(postId, clientHash));
     }
 
     public long countByPostId(Long postId) {
@@ -36,7 +34,7 @@ public class LikeService {
     }
 
     private void ensurePostExists(Long postId) {
-        postRepository.findById(postId)
+        postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new PostNotFoundException(postId));
     }
 

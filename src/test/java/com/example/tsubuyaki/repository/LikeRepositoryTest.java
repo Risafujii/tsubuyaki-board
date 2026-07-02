@@ -6,11 +6,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -33,6 +35,17 @@ class LikeRepositoryTest {
 
         assertThat(likeRepository.existsByPostIdAndClientHash(post.getId(), "abc12345")).isTrue();
         assertThat(likeRepository.findByPostIdAndClientHash(post.getId(), "abc12345")).isPresent();
+    }
+
+    @Test
+    @DisplayName("いいね保存_save_同じ投稿IDとclientHashは一意制約違反になる")
+    void いいね保存_save_同じ投稿IDとclientHashは一意制約違反になる() {
+        PostEntity post = persistPost();
+        likeRepository.saveAndFlush(new LikeEntity(post.getId(), "abc12345"));
+        entityManager.clear();
+
+        assertThatThrownBy(() -> likeRepository.saveAndFlush(new LikeEntity(post.getId(), "abc12345")))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test

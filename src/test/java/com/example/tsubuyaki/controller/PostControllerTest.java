@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -304,6 +305,30 @@ class PostControllerTest {
     }
 
     @Test
+    @DisplayName("いいね_POST_posts_id_likes_存在しないidは404を返す")
+    void いいね_POST_posts_id_likes_存在しないidは404を返す() throws Exception {
+        String ip = "192.0.2.10";
+        String userAgent = "JUnit Browser";
+        given(clientHashService.generate(ip, userAgent)).willReturn("abc12345");
+        willThrow(new PostNotFoundException(999L))
+                .given(likeService)
+                .toggleLike(999L, "abc12345");
+
+        mockMvc.perform(post("/posts/{id}/likes", 999L)
+                        .with(csrf())
+                        .with(request -> {
+                            request.setRemoteAddr(ip);
+                            return request;
+                        })
+                        .header("User-Agent", userAgent))
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error/404"));
+
+        verify(clientHashService).generate(ip, userAgent);
+        verify(likeService).toggleLike(999L, "abc12345");
+    }
+
+    @Test
     @DisplayName("投稿削除_POST_posts_id_delete_論理削除して一覧へリダイレクトする")
     void 投稿削除_POST_posts_id_delete_論理削除して一覧へリダイレクトする() throws Exception {
         mockMvc.perform(post("/posts/{id}/delete", 1L).with(csrf()))
@@ -314,6 +339,20 @@ class PostControllerTest {
                         PostController.DELETE_SUCCESS_MESSAGE));
 
         verify(postService).delete(1L);
+    }
+
+    @Test
+    @DisplayName("投稿削除_POST_posts_id_delete_存在しないidは404を返す")
+    void 投稿削除_POST_posts_id_delete_存在しないidは404を返す() throws Exception {
+        willThrow(new PostNotFoundException(999L))
+                .given(postService)
+                .delete(999L);
+
+        mockMvc.perform(post("/posts/{id}/delete", 999L).with(csrf()))
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error/404"));
+
+        verify(postService).delete(999L);
     }
 
     @Test

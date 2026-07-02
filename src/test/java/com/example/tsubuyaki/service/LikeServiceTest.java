@@ -35,9 +35,9 @@ class LikeServiceTest {
     @DisplayName("いいね_toggleLike_未登録ならLikeを保存する")
     void いいね_toggleLike_未登録ならLikeを保存する() {
         LikeService likeService = new LikeService(likeRepository, postRepository);
-        given(likeRepository.findByPostIdAndClientHash(1L, "abc12345")).willReturn(Optional.empty());
-        given(postRepository.findById(1L)).willReturn(Optional.of(
+        given(postRepository.findByIdAndDeletedAtIsNull(1L)).willReturn(Optional.of(
                 new PostEntity(1L, "alice", "BLUE", "本文", Instant.parse("2026-06-26T09:00:00Z"))));
+        given(likeRepository.findByPostIdAndClientHash(1L, "abc12345")).willReturn(Optional.empty());
 
         likeService.toggleLike(1L, "abc12345");
 
@@ -50,27 +50,43 @@ class LikeServiceTest {
     void いいね_toggleLike_登録済みならLikeを削除する() {
         LikeService likeService = new LikeService(likeRepository, postRepository);
         LikeEntity like = new LikeEntity(1L, "abc12345");
+        given(postRepository.findByIdAndDeletedAtIsNull(1L)).willReturn(Optional.of(
+                new PostEntity(1L, "alice", "BLUE", "本文", Instant.parse("2026-06-26T09:00:00Z"))));
         given(likeRepository.findByPostIdAndClientHash(1L, "abc12345")).willReturn(Optional.of(like));
 
         likeService.toggleLike(1L, "abc12345");
 
         verify(likeRepository).delete(like);
         verify(likeRepository, never()).saveAndFlush(any(LikeEntity.class));
-        verify(postRepository, never()).findById(1L);
     }
 
     @Test
     @DisplayName("いいね_toggleLike_投稿が存在しない場合は専用例外を投げる")
     void いいね_toggleLike_投稿が存在しない場合は専用例外を投げる() {
         LikeService likeService = new LikeService(likeRepository, postRepository);
-        given(likeRepository.findByPostIdAndClientHash(999L, "abc12345")).willReturn(Optional.empty());
-        given(postRepository.findById(999L)).willReturn(Optional.empty());
+        given(postRepository.findByIdAndDeletedAtIsNull(999L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> likeService.toggleLike(999L, "abc12345"))
                 .isInstanceOf(PostNotFoundException.class)
                 .hasMessageContaining("999");
 
+        verify(likeRepository, never()).findByPostIdAndClientHash(999L, "abc12345");
         verify(likeRepository, never()).saveAndFlush(any(LikeEntity.class));
+    }
+
+    @Test
+    @DisplayName("いいね_toggleLike_論理削除済み投稿は専用例外を投げる")
+    void いいね_toggleLike_論理削除済み投稿は専用例外を投げる() {
+        LikeService likeService = new LikeService(likeRepository, postRepository);
+        given(postRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> likeService.toggleLike(10L, "abc12345"))
+                .isInstanceOf(PostNotFoundException.class)
+                .hasMessageContaining("10");
+
+        verify(likeRepository, never()).findByPostIdAndClientHash(10L, "abc12345");
+        verify(likeRepository, never()).saveAndFlush(any(LikeEntity.class));
+        verify(likeRepository, never()).delete(any(LikeEntity.class));
     }
 
     @Test
@@ -78,11 +94,11 @@ class LikeServiceTest {
     void いいね_toggleLike_同時登録で一意制約に衝突したら既存Likeを削除する() {
         LikeService likeService = new LikeService(likeRepository, postRepository);
         LikeEntity concurrentLike = new LikeEntity(1L, "abc12345");
+        given(postRepository.findByIdAndDeletedAtIsNull(1L)).willReturn(Optional.of(
+                new PostEntity(1L, "alice", "BLUE", "本文", Instant.parse("2026-06-26T09:00:00Z"))));
         given(likeRepository.findByPostIdAndClientHash(1L, "abc12345"))
                 .willReturn(Optional.empty())
                 .willReturn(Optional.of(concurrentLike));
-        given(postRepository.findById(1L)).willReturn(Optional.of(
-                new PostEntity(1L, "alice", "BLUE", "本文", Instant.parse("2026-06-26T09:00:00Z"))));
         willThrow(new DataIntegrityViolationException("unique constraint"))
                 .given(likeRepository)
                 .saveAndFlush(any(LikeEntity.class));
@@ -97,14 +113,14 @@ class LikeServiceTest {
     @DisplayName("いいね件数_countByPostId_投稿が存在するとき件数を返す")
     void いいね件数_countByPostId_投稿が存在するとき件数を返す() {
         LikeService likeService = new LikeService(likeRepository, postRepository);
-        given(postRepository.findById(1L)).willReturn(Optional.of(
+        given(postRepository.findByIdAndDeletedAtIsNull(1L)).willReturn(Optional.of(
                 new PostEntity(1L, "alice", "BLUE", "本文", Instant.parse("2026-06-26T09:00:00Z"))));
         given(likeRepository.countByPostId(1L)).willReturn(2L);
 
         long actual = likeService.countByPostId(1L);
 
         assertThat(actual).isEqualTo(2L);
-        verify(postRepository).findById(1L);
+        verify(postRepository).findByIdAndDeletedAtIsNull(1L);
         verify(likeRepository).countByPostId(1L);
     }
 
@@ -112,12 +128,25 @@ class LikeServiceTest {
     @DisplayName("いいね件数_countByPostId_投稿が存在しない場合は専用例外を投げる")
     void いいね件数_countByPostId_投稿が存在しない場合は専用例外を投げる() {
         LikeService likeService = new LikeService(likeRepository, postRepository);
-        given(postRepository.findById(999L)).willReturn(Optional.empty());
+        given(postRepository.findByIdAndDeletedAtIsNull(999L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> likeService.countByPostId(999L))
                 .isInstanceOf(PostNotFoundException.class)
                 .hasMessageContaining("999");
 
         verify(likeRepository, never()).countByPostId(999L);
+    }
+
+    @Test
+    @DisplayName("いいね件数_countByPostId_論理削除済み投稿は専用例外を投げる")
+    void いいね件数_countByPostId_論理削除済み投稿は専用例外を投げる() {
+        LikeService likeService = new LikeService(likeRepository, postRepository);
+        given(postRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> likeService.countByPostId(10L))
+                .isInstanceOf(PostNotFoundException.class)
+                .hasMessageContaining("10");
+
+        verify(likeRepository, never()).countByPostId(10L);
     }
 }
