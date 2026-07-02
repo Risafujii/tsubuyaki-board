@@ -7,6 +7,8 @@ import com.example.tsubuyaki.repository.PostEntity;
 import com.example.tsubuyaki.repository.PostEntityMapper;
 import com.example.tsubuyaki.repository.PostRepository;
 import com.example.tsubuyaki.repository.TagEntity;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,8 @@ import java.util.Objects;
 @Service
 @Transactional(readOnly = true)
 public class PostService {
+
+    private static final int POST_LIMIT = 50;
 
     private final PostRepository repository;
     private final LikeRepository likeRepository;
@@ -36,9 +40,7 @@ public class PostService {
     }
 
     public List<PostDetail> latestDetails() {
-        return latest().stream()
-                .map(post -> new PostDetail(post, likeRepository.countByPostId(post.getId())))
-                .toList();
+        return toDetailList(latest());
     }
 
     public List<Post> findPosts(String keyword) {
@@ -52,8 +54,11 @@ public class PostService {
         if (keyword == null || keyword.isBlank()) {
             return latest();
         }
-        return toDomainList(repository
-                .findTop50ByDeletedAtIsNullAndBodyContainingOrderByCreatedAtDescIdDesc(keyword.strip()));
+        return toDomainList(repository.searchActiveByKeyword(keyword.strip(), searchPage()));
+    }
+
+    public List<PostDetail> findPostDetails(String keyword) {
+        return toDetailList(findPosts(keyword));
     }
 
     public Post getById(Long id) {
@@ -64,6 +69,10 @@ public class PostService {
 
     public List<Post> findPostsByTag(String tagName) {
         return toDomainList(repository.findTop50ByDeletedAtIsNullAndTagsNameOrderByCreatedAtDescIdDesc(tagName));
+    }
+
+    public List<PostDetail> findPostDetailsByTag(String tagName) {
+        return toDetailList(findPostsByTag(tagName));
     }
 
     public PostDetail getDetail(Long id) {
@@ -93,6 +102,16 @@ public class PostService {
     private static List<Post> toDomainList(List<PostEntity> entities) {
         return entities.stream()
                 .map(PostEntityMapper::toDomain)
+                .toList();
+    }
+
+    private static PageRequest searchPage() {
+        return PageRequest.of(0, POST_LIMIT, Sort.by(Sort.Direction.DESC, "createdAt", "id"));
+    }
+
+    private List<PostDetail> toDetailList(List<Post> posts) {
+        return posts.stream()
+                .map(post -> new PostDetail(post, likeRepository.countByPostId(post.getId())))
                 .toList();
     }
 }

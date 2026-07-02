@@ -2,6 +2,7 @@ package com.example.tsubuyaki.controller;
 
 import com.example.tsubuyaki.config.SecurityConfig;
 import com.example.tsubuyaki.domain.Post;
+import com.example.tsubuyaki.service.PostDetail;
 import com.example.tsubuyaki.service.PostService;
 import com.example.tsubuyaki.web.dto.PostResponse;
 import org.junit.jupiter.api.DisplayName;
@@ -39,9 +40,10 @@ class TagControllerTest {
     @Test
     @DisplayName("タグ別一覧_GET_tags_name_関連投稿を一覧画面に表示する")
     void タグ別一覧_GET_tags_name_関連投稿を一覧画面に表示する() throws Exception {
-        given(postService.findPostsByTag("SpringBoot")).willReturn(List.of(
+        given(postService.findPostDetailsByTag("SpringBoot")).willReturn(List.of(new PostDetail(
                 Post.reconstruct(1L, "alice", "GREEN", "Spring Bootを勉強しています。 #SpringBoot",
-                        Instant.parse("2026-06-26T09:00:00Z"), List.of("SpringBoot"))));
+                        Instant.parse("2026-06-26T09:00:00Z"), List.of("SpringBoot")),
+                5L)));
 
         MvcResult result = mockMvc.perform(get("/tags/{name}", "SpringBoot"))
                 .andExpect(status().isOk())
@@ -50,6 +52,7 @@ class TagControllerTest {
                 .andExpect(model().attribute("query", ""))
                 .andExpect(content().string(containsString("#SpringBoot の投稿")))
                 .andExpect(content().string(containsString("alice")))
+                .andExpect(content().string(containsString("♥ 5")))
                 .andExpect(content().string(containsString("href=\"/tags/SpringBoot\"")))
                 .andReturn();
 
@@ -61,6 +64,6 @@ class TagControllerTest {
         assertThat(postsModel).isInstanceOf(List.class);
         List<?> posts = (List<?>) postsModel;
         assertThat(posts).allSatisfy(post -> assertThat(post).isInstanceOf(PostResponse.class));
-        verify(postService).findPostsByTag("SpringBoot");
+        verify(postService).findPostDetailsByTag("SpringBoot");
     }
 }

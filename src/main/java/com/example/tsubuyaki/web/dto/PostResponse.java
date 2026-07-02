@@ -14,7 +14,8 @@ public record PostResponse(
         String body,
         String displayBody,
         Instant createdAt,
-        List<String> tagNames) {
+        List<String> tagNames,
+        long likeCount) {
 
     public PostResponse(Long id, String author, String body, Instant createdAt) {
         this(id, author, AvatarColor.DEFAULT.name(), body, createdAt, List.of());
@@ -31,7 +32,18 @@ public record PostResponse(
             String body,
             Instant createdAt,
             List<String> tagNames) {
-        this(id, author, avatarColor, body, HashtagText.removeTags(body), createdAt, tagNames);
+        this(id, author, avatarColor, body, HashtagText.removeTags(body), createdAt, tagNames, 0L);
+    }
+
+    public PostResponse(
+            Long id,
+            String author,
+            String avatarColor,
+            String body,
+            String displayBody,
+            Instant createdAt,
+            List<String> tagNames) {
+        this(id, author, avatarColor, body, displayBody, createdAt, tagNames, 0L);
     }
 
     public PostResponse {

@@ -56,6 +56,34 @@ class PostResponseTest {
     }
 
     @Test
+    @DisplayName("PostResponse_件数付きコンストラクタ_likeCountを設定する")
+    void PostResponse_件数付きコンストラクタ_likeCountを設定する() {
+        PostResponse response = new PostResponse(
+                1L,
+                "alice",
+                "ORANGE",
+                "hello #Java",
+                "hello",
+                Instant.parse("2026-06-26T09:00:00Z"),
+                List.of("Java"),
+                3L);
+
+        assertThat(response.likeCount()).isEqualTo(3L);
+    }
+
+    @Test
+    @DisplayName("PostResponse_既存コンストラクタ_likeCountは0にする")
+    void PostResponse_既存コンストラクタ_likeCountは0にする() {
+        PostResponse response = new PostResponse(
+                1L,
+                "alice",
+                "hello",
+                Instant.parse("2026-06-26T09:00:00Z"));
+
+        assertThat(response.likeCount()).isZero();
+    }
+
+    @Test
     @DisplayName("PostResponse_compactConstructor_displayBody_nullは空文字にする")
     void PostResponse_compactConstructor_displayBody_nullは空文字にする() {
         PostResponse response = new PostResponse(

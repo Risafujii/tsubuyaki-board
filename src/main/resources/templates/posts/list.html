@@ -49,6 +49,7 @@
                    th:href="@{/tags/{name}(name=${tag})}"
                    th:text="|#${tag}|">#Java</a>
             </p>
+            <p class="post__likes" th:text="|♥ ${post.likeCount}|">♥ 0</p>
             <time class="post__created-at"
                   th:datetime="${post.createdAt}"
                   th:text="${post.createdAt}">2026-05-23T09:00:00Z</time>

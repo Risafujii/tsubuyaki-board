@@ -18,7 +18,7 @@ public class TagController {
 
     @GetMapping("/tags/{name}")
     public String listByTag(@PathVariable String name, Model model) {
-        model.addAttribute("posts", PostMapper.toResponseList(postService.findPostsByTag(name)));
+        model.addAttribute("posts", PostMapper.toDetailResponseList(postService.findPostDetailsByTag(name)));
         model.addAttribute("query", "");
         model.addAttribute("tagName", name);
         return "posts/list";

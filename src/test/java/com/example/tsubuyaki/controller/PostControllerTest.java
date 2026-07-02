@@ -69,7 +69,7 @@ class PostControllerTest {
     @Test
     @DisplayName("投稿一覧_DB空のとき_まだ投稿はありませんを表示する")
     void 投稿一覧_DB空のとき_まだ投稿はありませんを表示する() throws Exception {
-        given(postService.findPosts(null)).willReturn(List.of());
+        given(postService.findPostDetails(null)).willReturn(List.of());
 
         mockMvc.perform(get("/posts"))
                 .andExpect(status().isOk())
@@ -82,7 +82,7 @@ class PostControllerTest {
     @Test
     @DisplayName("投稿一覧_表示時_更新ボタンはpostsスラッシュへGETリクエストする")
     void 投稿一覧_表示時_更新ボタンはpostsスラッシュへGETリクエストする() throws Exception {
-        given(postService.findPosts(null)).willReturn(List.of());
+        given(postService.findPostDetails(null)).willReturn(List.of());
 
         mockMvc.perform(get("/posts"))
                 .andExpect(status().isOk())
@@ -94,9 +94,10 @@ class PostControllerTest {
     @Test
     @DisplayName("投稿一覧_投稿あり_投稿者内容投稿日の順に表示する")
     void 投稿一覧_投稿あり_投稿者内容投稿日の順に表示する() throws Exception {
-        given(postService.findPosts(null)).willReturn(List.of(
+        given(postService.findPostDetails(null)).willReturn(List.of(new PostDetail(
                 Post.reconstruct(1L, "alice", "BLUE", "一覧の表示順を確認します #Java",
-                        Instant.parse("2026-06-26T09:00:00Z"), List.of("Java"))));
+                        Instant.parse("2026-06-26T09:00:00Z"), List.of("Java")),
+                2L)));
 
         MvcResult result = mockMvc.perform(get("/posts"))
                 .andExpect(status().isOk())
@@ -114,6 +115,7 @@ class PostControllerTest {
         assertThat(html).contains("post-link");
         assertThat(html).contains("href=\"/posts/1\"");
         assertThat(html).contains(">一覧の表示順を確認します</a>");
+        assertThat(html).contains("♥ 2");
         assertThat(html).doesNotContain(">一覧の表示順を確認します #Java</a>");
         assertThat(html).contains("href=\"/tags/Java\"");
         assertThat(bodyIndex).isGreaterThan(authorIndex);
@@ -127,15 +129,17 @@ class PostControllerTest {
     @Test
     @DisplayName("投稿検索_q指定_本文部分一致の検索結果を一覧画面に表示し検索文字列を保持する")
     void 投稿検索_q指定_本文部分一致の検索結果を一覧画面に表示し検索文字列を保持する() throws Exception {
-        given(postService.findPosts("Spring")).willReturn(List.of(
+        given(postService.findPostDetails("Spring")).willReturn(List.of(new PostDetail(
                 Post.create("alice", "GREEN", "Spring Boot の共有です",
-                        Instant.parse("2026-06-26T09:00:00Z"))));
+                        Instant.parse("2026-06-26T09:00:00Z")),
+                4L)));
 
         MvcResult result = mockMvc.perform(get("/posts").param("q", "Spring"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("posts/list"))
                 .andExpect(model().attribute("query", "Spring"))
                 .andExpect(content().string(containsString("Spring Boot の共有です")))
+                .andExpect(content().string(containsString("♥ 4")))
                 .andExpect(content().string(containsString("value=\"Spring\"")))
                 .andReturn();
 
@@ -143,13 +147,13 @@ class PostControllerTest {
                 .contains("post__avatar-color--green")
                 .doesNotContain(">GREEN<");
 
-        verify(postService).findPosts("Spring");
+        verify(postService).findPostDetails("Spring");
     }
 
     @Test
     @DisplayName("投稿検索_q空文字_通常一覧を表示し検索文字列は空で保持する")
     void 投稿検索_q空文字_通常一覧を表示し検索文字列は空で保持する() throws Exception {
-        given(postService.findPosts("")).willReturn(List.of());
+        given(postService.findPostDetails("")).willReturn(List.of());
 
         mockMvc.perform(get("/posts").param("q", ""))
                 .andExpect(status().isOk())
@@ -158,13 +162,13 @@ class PostControllerTest {
                 .andExpect(model().attribute("query", ""))
                 .andExpect(content().string(containsString("value=\"\"")));
 
-        verify(postService).findPosts("");
+        verify(postService).findPostDetails("");
     }
 
     @Test
     @DisplayName("投稿検索_結果0件_一覧画面を正常表示し検索文字列を保持する")
     void 投稿検索_結果0件_一覧画面を正常表示し検索文字列を保持する() throws Exception {
-        given(postService.findPosts("NoHit")).willReturn(List.of());
+        given(postService.findPostDetails("NoHit")).willReturn(List.of());
 
         mockMvc.perform(get("/posts").param("q", "NoHit"))
                 .andExpect(status().isOk())
@@ -220,7 +224,8 @@ class PostControllerTest {
         given(postService.getDetail(999L)).willThrow(new PostNotFoundException(999L));
 
         mockMvc.perform(get("/posts/{id}", 999L))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error/404"));
     }
 
     @Test
@@ -358,7 +363,7 @@ class PostControllerTest {
     @Test
     @DisplayName("投稿一覧_Flash成功メッセージあり_一覧上部に削除完了を表示する")
     void 投稿一覧_Flash成功メッセージあり_一覧上部に削除完了を表示する() throws Exception {
-        given(postService.findPosts(null)).willReturn(List.of());
+        given(postService.findPostDetails(null)).willReturn(List.of());
 
         mockMvc.perform(get("/posts").flashAttr(
                         PostController.SUCCESS_MESSAGE_ATTRIBUTE,
@@ -371,42 +376,44 @@ class PostControllerTest {
     @Test
     @DisplayName("投稿作成_author未入力_フォームを再表示してエラー情報を含める")
     void 投稿作成_author未入力_フォームを再表示してエラー情報を含める() throws Exception {
-        assertInvalidPost("", "本文があります", "author");
+        assertInvalidPost("", "本文があります", "投稿者名を入力してください", "author");
     }
 
     @Test
     @DisplayName("投稿作成_body未入力_フォームを再表示してエラー情報を含める")
     void 投稿作成_body未入力_フォームを再表示してエラー情報を含める() throws Exception {
-        assertInvalidPost("alice", "", "body");
+        assertInvalidPost("alice", "", "本文を入力してください", "body");
     }
 
     @Test
     @DisplayName("投稿作成_author31文字以上_フォームを再表示してエラー情報を含める")
     void 投稿作成_author31文字以上_フォームを再表示してエラー情報を含める() throws Exception {
-        assertInvalidPost("a".repeat(31), "本文があります", "author");
+        assertInvalidPost("a".repeat(31), "本文があります", "投稿者名は 30 文字以内で入力してください", "author");
     }
 
     @Test
     @DisplayName("投稿作成_body281文字以上_フォームを再表示してエラー情報を含める")
     void 投稿作成_body281文字以上_フォームを再表示してエラー情報を含める() throws Exception {
-        assertInvalidPost("alice", "あ".repeat(281), "body");
+        assertInvalidPost("alice", "あ".repeat(281), "本文は 280 文字以内で入力してください", "body");
     }
 
     @Test
     @DisplayName("投稿作成_空白のみ_フォームを再表示してエラー情報を含める")
     void 投稿作成_空白のみ_フォームを再表示してエラー情報を含める() throws Exception {
-        assertInvalidPost("   ", "　　", "author", "body");
+        assertInvalidPost("   ", "　　", "投稿者名を入力してください", "author", "body");
     }
 
-    private void assertInvalidPost(String author, String body, String... errorFields) throws Exception {
+    private void assertInvalidPost(String author, String body, String errorMessage, String... errorFields) throws Exception {
         mockMvc.perform(post("/posts")
                         .with(csrf())
                         .param("author", author)
                         .param("body", body))
                 .andExpect(status().isOk())
                 .andExpect(view().name("posts/form"))
-                .andExpect(model().attributeHasFieldErrors("postForm", errorFields));
+                .andExpect(model().attributeHasFieldErrors("postForm", errorFields))
+                .andExpect(content().string(containsString(errorMessage)));
 
         verify(postService, never()).create(anyString(), anyString());
+        verify(postService, never()).create(anyString(), anyString(), anyString());
     }
 }

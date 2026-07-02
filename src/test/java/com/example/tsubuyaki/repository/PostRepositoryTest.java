@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
@@ -160,6 +161,19 @@ class PostRepositoryTest {
         assertThat(posts)
                 .extracting(PostEntity::getAuthor)
                 .containsExactly("new", "old");
+    }
+
+    @Test
+    @DisplayName("投稿検索_投稿者名にキーワードを含む投稿も返す")
+    void 投稿検索_投稿者名にキーワードを含む投稿も返す() {
+        persistPost("alice", "Java の共有", Instant.parse("2026-06-26T09:00:00Z"));
+        persistPost("spring-user", "本文には含まない", Instant.parse("2026-06-26T10:00:00Z"));
+
+        List<PostEntity> posts = postRepository.searchActiveByKeyword("Spring", PageRequest.of(0, 50));
+
+        assertThat(posts)
+                .extracting(PostEntity::getAuthor)
+                .containsExactly("spring-user");
     }
 
     @Test

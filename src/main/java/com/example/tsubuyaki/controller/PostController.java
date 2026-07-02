@@ -45,7 +45,7 @@ public class PostController {
 
     @GetMapping({ "/", "/posts", "/posts/" })
     public String list(@RequestParam(name = "q", required = false) String query, Model model) {
-        model.addAttribute("posts", PostMapper.toResponseList(postService.findPosts(query)));
+        model.addAttribute("posts", PostMapper.toDetailResponseList(postService.findPostDetails(query)));
         model.addAttribute("query", query == null ? "" : query);
         return "posts/list";
     }
