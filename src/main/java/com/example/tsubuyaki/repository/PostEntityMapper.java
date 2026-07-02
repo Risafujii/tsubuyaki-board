@@ -10,7 +10,7 @@ public final class PostEntityMapper {
     }
 
     public static Post toDomain(PostEntity entity) {
-        return new Post(
+        return Post.reconstruct(
                 entity.getId(),
                 entity.getAuthor(),
                 entity.getAvatarColor(),

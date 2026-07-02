@@ -96,6 +96,26 @@ class PostRepositoryTest {
     }
 
     @Test
+    @DisplayName("投稿一覧_DB空のとき_空リストを返す")
+    void 投稿一覧_DB空のとき_空リストを返す() {
+        List<PostEntity> posts = postRepository.findTop50ByDeletedAtIsNullOrderByCreatedAtDescIdDesc();
+
+        assertThat(posts).isEmpty();
+    }
+
+    @Test
+    @DisplayName("投稿一覧_1件だけ存在するとき_その1件を返す")
+    void 投稿一覧_1件だけ存在するとき_その1件を返す() {
+        persistPost("alice", "only one", Instant.parse("2026-06-26T09:00:00Z"));
+
+        List<PostEntity> posts = postRepository.findTop50ByDeletedAtIsNullOrderByCreatedAtDescIdDesc();
+
+        assertThat(posts)
+                .extracting(PostEntity::getBody)
+                .containsExactly("only one");
+    }
+
+    @Test
     @DisplayName("投稿一覧_論理削除済み投稿_取得されない")
     void 投稿一覧_論理削除済み投稿_取得されない() {
         persistPost("active", "visible", Instant.parse("2026-06-26T09:00:00Z"));
@@ -143,6 +163,20 @@ class PostRepositoryTest {
     }
 
     @Test
+    @DisplayName("投稿検索_1件だけ一致するとき_その1件を返す")
+    void 投稿検索_1件だけ一致するとき_その1件を返す() {
+        persistPost("alice", "Spring Boot の共有", Instant.parse("2026-06-26T09:00:00Z"));
+        persistPost("bob", "Java の共有", Instant.parse("2026-06-26T10:00:00Z"));
+
+        List<PostEntity> posts = postRepository.findTop50ByDeletedAtIsNullAndBodyContainingOrderByCreatedAtDescIdDesc(
+                "Spring");
+
+        assertThat(posts)
+                .extracting(PostEntity::getAuthor)
+                .containsExactly("alice");
+    }
+
+    @Test
     @DisplayName("投稿検索_該当なし_空リストを返す")
     void 投稿検索_該当なし_空リストを返す() {
         persistPost("alice", "Java の共有", Instant.parse("2026-06-26T09:00:00Z"));
@@ -150,6 +184,55 @@ class PostRepositoryTest {
         List<PostEntity> posts = postRepository.findTop50ByDeletedAtIsNullAndBodyContainingOrderByCreatedAtDescIdDesc("NoHit");
 
         assertThat(posts).isEmpty();
+    }
+
+    @Test
+    @DisplayName("投稿検索_nullキーワード_本文null検索として空リストを返す")
+    void 投稿検索_nullキーワード_本文null検索として空リストを返す() {
+        persistPost("alice", "Java の共有", Instant.parse("2026-06-26T09:00:00Z"));
+
+        List<PostEntity> posts = postRepository.findTop50ByDeletedAtIsNullAndBodyContainingOrderByCreatedAtDescIdDesc(
+                null);
+
+        assertThat(posts).isEmpty();
+    }
+
+    @Test
+    @DisplayName("投稿検索_論理削除済みの一致投稿_取得されない")
+    void 投稿検索_論理削除済みの一致投稿_取得されない() {
+        PostEntity deleted = persistPost("deleted", "Spring hidden", Instant.parse("2026-06-26T09:00:00Z"));
+        deleted.markDeleted(Instant.parse("2026-06-26T10:00:00Z"));
+        entityManager.merge(deleted);
+        persistPost("active", "Spring visible", Instant.parse("2026-06-26T08:00:00Z"));
+        flushAndClear();
+
+        List<PostEntity> posts = postRepository.findTop50ByDeletedAtIsNullAndBodyContainingOrderByCreatedAtDescIdDesc(
+                "Spring");
+
+        assertThat(posts)
+                .extracting(PostEntity::getAuthor)
+                .containsExactly("active");
+    }
+
+    @Test
+    @DisplayName("投稿詳細_ID検索_存在する未削除投稿はOptionalに投稿を入れて返す")
+    void 投稿詳細_ID検索_存在する未削除投稿はOptionalに投稿を入れて返す() {
+        PostEntity saved = persistPost("alice", "visible", Instant.parse("2026-06-26T09:00:00Z"));
+
+        Optional<PostEntity> actual = postRepository.findByIdAndDeletedAtIsNull(saved.getId());
+
+        assertThat(actual)
+                .get()
+                .extracting(PostEntity::getBody)
+                .isEqualTo("visible");
+    }
+
+    @Test
+    @DisplayName("投稿詳細_ID検索_存在しない投稿はOptional_emptyを返す")
+    void 投稿詳細_ID検索_存在しない投稿はOptional_emptyを返す() {
+        Optional<PostEntity> actual = postRepository.findByIdAndDeletedAtIsNull(999_999L);
+
+        assertThat(actual).isEmpty();
     }
 
     @Test
@@ -201,6 +284,71 @@ class PostRepositoryTest {
         assertThat(posts.get(0).getTags())
                 .extracting(TagEntity::getName)
                 .containsExactly("Java", "Spring");
+    }
+
+    @Test
+    @DisplayName("タグ別一覧_該当タグなし_空リストを返す")
+    void タグ別一覧_該当タグなし_空リストを返す() {
+        TagEntity java = entityManager.persistAndFlush(new TagEntity("Java"));
+        entityManager.persist(new PostEntity(
+                null,
+                "alice",
+                "BLUE",
+                "Java の共有 #Java",
+                Instant.parse("2026-06-26T09:00:00Z"),
+                List.of(java)));
+        flushAndClear();
+
+        List<PostEntity> posts = postRepository.findTop50ByDeletedAtIsNullAndTagsNameOrderByCreatedAtDescIdDesc(
+                "Spring");
+
+        assertThat(posts).isEmpty();
+    }
+
+    @Test
+    @DisplayName("タグ別一覧_nullタグ名_空リストを返す")
+    void タグ別一覧_nullタグ名_空リストを返す() {
+        TagEntity java = entityManager.persistAndFlush(new TagEntity("Java"));
+        entityManager.persist(new PostEntity(
+                null,
+                "alice",
+                "BLUE",
+                "Java の共有 #Java",
+                Instant.parse("2026-06-26T09:00:00Z"),
+                List.of(java)));
+        flushAndClear();
+
+        List<PostEntity> posts = postRepository.findTop50ByDeletedAtIsNullAndTagsNameOrderByCreatedAtDescIdDesc(null);
+
+        assertThat(posts).isEmpty();
+    }
+
+    @Test
+    @DisplayName("タグ別一覧_論理削除済み投稿_取得されない")
+    void タグ別一覧_論理削除済み投稿_取得されない() {
+        TagEntity java = entityManager.persistAndFlush(new TagEntity("Java"));
+        PostEntity deleted = entityManager.persist(new PostEntity(
+                null,
+                "deleted",
+                "BLUE",
+                "Java hidden #Java",
+                Instant.parse("2026-06-26T10:00:00Z"),
+                List.of(java)));
+        deleted.markDeleted(Instant.parse("2026-06-26T11:00:00Z"));
+        entityManager.persist(new PostEntity(
+                null,
+                "active",
+                "GREEN",
+                "Java visible #Java",
+                Instant.parse("2026-06-26T09:00:00Z"),
+                List.of(java)));
+        flushAndClear();
+
+        List<PostEntity> posts = postRepository.findTop50ByDeletedAtIsNullAndTagsNameOrderByCreatedAtDescIdDesc("Java");
+
+        assertThat(posts)
+                .extracting(PostEntity::getAuthor)
+                .containsExactly("active");
     }
 
     @Test

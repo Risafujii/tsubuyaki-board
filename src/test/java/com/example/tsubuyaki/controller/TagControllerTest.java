@@ -40,7 +40,7 @@ class TagControllerTest {
     @DisplayName("タグ別一覧_GET_tags_name_関連投稿を一覧画面に表示する")
     void タグ別一覧_GET_tags_name_関連投稿を一覧画面に表示する() throws Exception {
         given(postService.findPostsByTag("SpringBoot")).willReturn(List.of(
-                new Post(1L, "alice", "GREEN", "Spring Bootを勉強しています。 #SpringBoot",
+                Post.reconstruct(1L, "alice", "GREEN", "Spring Bootを勉強しています。 #SpringBoot",
                         Instant.parse("2026-06-26T09:00:00Z"), List.of("SpringBoot"))));
 
         MvcResult result = mockMvc.perform(get("/tags/{name}", "SpringBoot"))
@@ -57,9 +57,10 @@ class TagControllerTest {
         assertThat(html).contains(">Spring Bootを勉強しています。</a>");
         assertThat(html).doesNotContain(">Spring Bootを勉強しています。 #SpringBoot</a>");
 
-        assertThat(result.getModelAndView().getModel().get("posts"))
-                .asList()
-                .allSatisfy(post -> assertThat(post).isInstanceOf(PostResponse.class));
+        Object postsModel = result.getModelAndView().getModel().get("posts");
+        assertThat(postsModel).isInstanceOf(List.class);
+        List<?> posts = (List<?>) postsModel;
+        assertThat(posts).allSatisfy(post -> assertThat(post).isInstanceOf(PostResponse.class));
         verify(postService).findPostsByTag("SpringBoot");
     }
 }

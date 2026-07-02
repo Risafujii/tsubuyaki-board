@@ -8,9 +8,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
@@ -30,7 +30,7 @@ class ApiPostControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private PostService postService;
 
     @Test
@@ -38,10 +38,12 @@ class ApiPostControllerTest {
     void 投稿API_GET_api_posts_JSONで投稿一覧を返す() throws Exception {
         given(postService.latestDetails()).willReturn(List.of(
                 new PostDetail(
-                        new Post(1L, "alice", "BLUE", "API の共有です", Instant.parse("2026-06-26T09:00:00Z")),
+                        Post.reconstruct(1L, "alice", "BLUE", "API の共有です",
+                                Instant.parse("2026-06-26T09:00:00Z")),
                         3L),
                 new PostDetail(
-                        new Post(2L, "bob", "GREEN", "2件目です", Instant.parse("2026-06-26T08:00:00Z")),
+                        Post.reconstruct(2L, "bob", "GREEN", "2件目です",
+                                Instant.parse("2026-06-26T08:00:00Z")),
                         0L)));
 
         mockMvc.perform(get("/api/posts"))

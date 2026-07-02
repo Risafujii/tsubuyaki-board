@@ -94,7 +94,7 @@ class PostControllerTest {
     @DisplayName("投稿一覧_投稿あり_投稿者内容投稿日の順に表示する")
     void 投稿一覧_投稿あり_投稿者内容投稿日の順に表示する() throws Exception {
         given(postService.findPosts(null)).willReturn(List.of(
-                new Post(1L, "alice", "BLUE", "一覧の表示順を確認します #Java",
+                Post.reconstruct(1L, "alice", "BLUE", "一覧の表示順を確認します #Java",
                         Instant.parse("2026-06-26T09:00:00Z"), List.of("Java"))));
 
         MvcResult result = mockMvc.perform(get("/posts"))
@@ -117,16 +117,18 @@ class PostControllerTest {
         assertThat(html).contains("href=\"/tags/Java\"");
         assertThat(bodyIndex).isGreaterThan(authorIndex);
         assertThat(createdAtIndex).isGreaterThan(bodyIndex);
-        assertThat(result.getModelAndView().getModel().get("posts"))
-                .asList()
-                .allSatisfy(post -> assertThat(post).isInstanceOf(PostResponse.class));
+        Object postsModel = result.getModelAndView().getModel().get("posts");
+        assertThat(postsModel).isInstanceOf(List.class);
+        List<?> posts = (List<?>) postsModel;
+        assertThat(posts).allSatisfy(post -> assertThat(post).isInstanceOf(PostResponse.class));
     }
 
     @Test
     @DisplayName("投稿検索_q指定_本文部分一致の検索結果を一覧画面に表示し検索文字列を保持する")
     void 投稿検索_q指定_本文部分一致の検索結果を一覧画面に表示し検索文字列を保持する() throws Exception {
         given(postService.findPosts("Spring")).willReturn(List.of(
-                new Post("alice", "GREEN", "Spring Boot の共有です", Instant.parse("2026-06-26T09:00:00Z"))));
+                Post.create("alice", "GREEN", "Spring Boot の共有です",
+                        Instant.parse("2026-06-26T09:00:00Z"))));
 
         MvcResult result = mockMvc.perform(get("/posts").param("q", "Spring"))
                 .andExpect(status().isOk())
@@ -175,7 +177,7 @@ class PostControllerTest {
     @Test
     @DisplayName("投稿詳細_存在するid_投稿をModelに入れて詳細画面を表示する")
     void 投稿詳細_存在するid_投稿をModelに入れて詳細画面を表示する() throws Exception {
-        Post post = new Post(1L, "alice", "PURPLE", "詳細表示を確認します #java #spring",
+        Post post = Post.reconstruct(1L, "alice", "PURPLE", "詳細表示を確認します #java #spring",
                 Instant.parse("2026-06-26T09:00:00Z"), List.of("java", "spring"));
         given(postService.getDetail(1L)).willReturn(new PostDetail(post, 15L));
 
@@ -241,6 +243,9 @@ class PostControllerTest {
                 .andReturn();
 
         assertThat(result.getResponse().getContentAsString())
+                .contains("<form class=\"post-form\"")
+                .contains("<div class=\"post-form__field\">")
+                .contains("class=\"post-form__control\"")
                 .contains("<option value=\"RED\">赤</option>")
                 .contains("<option value=\"BLUE\" selected=\"selected\">青</option>")
                 .contains("<option value=\"GREEN\">緑</option>")

@@ -2,7 +2,6 @@ package com.example.tsubuyaki.domain;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 
 public final class Post {
 
@@ -23,27 +22,7 @@ public final class Post {
 
     private Instant deletedAt;
 
-    public Post(String author, String body, Instant createdAt) {
-        this(null, author, AvatarColor.DEFAULT.name(), body, createdAt);
-    }
-
-    public Post(String author, String avatarColor, String body, Instant createdAt) {
-        this(null, author, avatarColor, body, createdAt);
-    }
-
-    public Post(Long id, String author, String body, Instant createdAt) {
-        this(id, author, AvatarColor.DEFAULT.name(), body, createdAt);
-    }
-
-    public Post(Long id, String author, String avatarColor, String body, Instant createdAt) {
-        this(id, author, avatarColor, body, createdAt, List.of());
-    }
-
-    public Post(Long id, String author, String avatarColor, String body, Instant createdAt, List<String> tagNames) {
-        this(id, author, avatarColor, body, createdAt, tagNames, null);
-    }
-
-    public Post(
+    private Post(
             Long id,
             String author,
             String avatarColor,
@@ -52,12 +31,61 @@ public final class Post {
             List<String> tagNames,
             Instant deletedAt) {
         this.id = id;
-        this.author = normalizeRequired(author, "author", AUTHOR_MAX_LENGTH);
-        this.avatarColor = AvatarColor.from(avatarColor).name();
-        this.body = normalizeRequired(body, "body", BODY_MAX_LENGTH);
-        this.createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null");
-        this.tagNames = List.copyOf(tagNames);
+        this.author = author;
+        this.avatarColor = avatarColor;
+        this.body = body;
+        this.createdAt = createdAt;
+        this.tagNames = tagNames;
         this.deletedAt = deletedAt;
+    }
+
+    public static Post create(String author, String body, Instant createdAt) {
+        return create(author, AvatarColor.DEFAULT.name(), body, createdAt);
+    }
+
+    public static Post create(String author, String avatarColor, String body, Instant createdAt) {
+        return reconstruct(null, author, avatarColor, body, createdAt, List.of(), null);
+    }
+
+    public static Post reconstruct(Long id, String author, String body, Instant createdAt) {
+        return reconstruct(id, author, AvatarColor.DEFAULT.name(), body, createdAt, List.of(), null);
+    }
+
+    public static Post reconstruct(Long id, String author, String avatarColor, String body, Instant createdAt) {
+        return reconstruct(id, author, avatarColor, body, createdAt, List.of(), null);
+    }
+
+    public static Post reconstruct(
+            Long id,
+            String author,
+            String avatarColor,
+            String body,
+            Instant createdAt,
+            List<String> tagNames) {
+        return reconstruct(id, author, avatarColor, body, createdAt, tagNames, null);
+    }
+
+    public static Post reconstruct(
+            Long id,
+            String author,
+            String avatarColor,
+            String body,
+            Instant createdAt,
+            List<String> tagNames,
+            Instant deletedAt) {
+        String normalizedAuthor = normalizeRequired(author, "author", AUTHOR_MAX_LENGTH);
+        String normalizedAvatarColor = AvatarColor.from(avatarColor).name();
+        String normalizedBody = normalizeRequired(body, "body", BODY_MAX_LENGTH);
+        Instant normalizedCreatedAt = requireCreatedAt(createdAt);
+        List<String> normalizedTagNames = copyTagNames(tagNames);
+        return new Post(
+                id,
+                normalizedAuthor,
+                normalizedAvatarColor,
+                normalizedBody,
+                normalizedCreatedAt,
+                normalizedTagNames,
+                deletedAt);
     }
 
     public Long getId() {
@@ -97,7 +125,10 @@ public final class Post {
     }
 
     public void markDeleted(Instant deletedAt) {
-        this.deletedAt = Objects.requireNonNull(deletedAt, "deletedAt must not be null");
+        if (deletedAt == null) {
+            throw new IllegalArgumentException("deletedAt must not be null");
+        }
+        this.deletedAt = deletedAt;
     }
 
     @Override
@@ -125,5 +156,19 @@ public final class Post {
             throw new IllegalArgumentException(fieldName + " must be " + maxLength + " characters or less");
         }
         return normalized;
+    }
+
+    private static Instant requireCreatedAt(Instant createdAt) {
+        if (createdAt == null) {
+            throw new IllegalArgumentException("createdAt must not be null");
+        }
+        return createdAt;
+    }
+
+    private static List<String> copyTagNames(List<String> tagNames) {
+        if (tagNames == null) {
+            throw new IllegalArgumentException("tagNames must not be null");
+        }
+        return List.copyOf(tagNames);
     }
 }

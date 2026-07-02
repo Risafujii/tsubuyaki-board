@@ -72,6 +72,22 @@ class PostServiceTest {
     }
 
     @Test
+    @DisplayName("投稿検索_searchPosts_nullは通常一覧を返す")
+    void 投稿検索_searchPosts_nullは通常一覧を返す() {
+        PostService postService = new PostService(postRepository, likeRepository, tagService, fixedClock());
+        given(postRepository.findTop50ByDeletedAtIsNullOrderByCreatedAtDescIdDesc()).willReturn(List.of(
+                new PostEntity(1L, "alice", "BLUE", "hello", Instant.parse("2026-06-26T09:00:00Z"))));
+
+        List<Post> actual = postService.searchPosts(null);
+
+        assertThat(actual)
+                .extracting(Post::getBody)
+                .containsExactly("hello");
+        verify(postRepository).findTop50ByDeletedAtIsNullOrderByCreatedAtDescIdDesc();
+        verify(postRepository, never()).findTop50ByDeletedAtIsNullAndBodyContainingOrderByCreatedAtDescIdDesc(anyString());
+    }
+
+    @Test
     @DisplayName("投稿検索_searchPosts_空文字は通常一覧を返す")
     void 投稿検索_searchPosts_空文字は通常一覧を返す() {
         PostService postService = new PostService(postRepository, likeRepository, tagService, fixedClock());
@@ -79,6 +95,22 @@ class PostServiceTest {
                 new PostEntity(1L, "alice", "BLUE", "hello", Instant.parse("2026-06-26T09:00:00Z"))));
 
         List<Post> actual = postService.searchPosts("  ");
+
+        assertThat(actual)
+                .extracting(Post::getBody)
+                .containsExactly("hello");
+        verify(postRepository).findTop50ByDeletedAtIsNullOrderByCreatedAtDescIdDesc();
+        verify(postRepository, never()).findTop50ByDeletedAtIsNullAndBodyContainingOrderByCreatedAtDescIdDesc(anyString());
+    }
+
+    @Test
+    @DisplayName("投稿一覧_findPosts_nullは通常一覧を返す")
+    void 投稿一覧_findPosts_nullは通常一覧を返す() {
+        PostService postService = new PostService(postRepository, likeRepository, tagService, fixedClock());
+        given(postRepository.findTop50ByDeletedAtIsNullOrderByCreatedAtDescIdDesc()).willReturn(List.of(
+                new PostEntity(1L, "alice", "BLUE", "hello", Instant.parse("2026-06-26T09:00:00Z"))));
+
+        List<Post> actual = postService.findPosts(null);
 
         assertThat(actual)
                 .extracting(Post::getBody)
@@ -101,6 +133,22 @@ class PostServiceTest {
                 .containsExactly("hello");
         verify(postRepository).findTop50ByDeletedAtIsNullOrderByCreatedAtDescIdDesc();
         verify(postRepository, never()).findTop50ByDeletedAtIsNullAndBodyContainingOrderByCreatedAtDescIdDesc(anyString());
+    }
+
+    @Test
+    @DisplayName("投稿一覧_findPosts_検索条件ありは本文部分一致で検索する")
+    void 投稿一覧_findPosts_検索条件ありは本文部分一致で検索する() {
+        PostService postService = new PostService(postRepository, likeRepository, tagService, fixedClock());
+        given(postRepository.findTop50ByDeletedAtIsNullAndBodyContainingOrderByCreatedAtDescIdDesc("Spring")).willReturn(List.of(
+                new PostEntity(1L, "alice", "GREEN", "Spring Boot の共有です", Instant.parse("2026-06-26T09:00:00Z"))));
+
+        List<Post> actual = postService.findPosts("Spring");
+
+        assertThat(actual)
+                .extracting(Post::getBody)
+                .containsExactly("Spring Boot の共有です");
+        verify(postRepository).findTop50ByDeletedAtIsNullAndBodyContainingOrderByCreatedAtDescIdDesc("Spring");
+        verify(postRepository, never()).findTop50ByDeletedAtIsNullOrderByCreatedAtDescIdDesc();
     }
 
     @Test
@@ -153,6 +201,29 @@ class PostServiceTest {
         verify(tagService).resolveTags("今日の共有です #Java #Java");
         verify(postRepository).save(any(PostEntity.class));
         verify(postRepository, never()).findTop50ByDeletedAtIsNullOrderByCreatedAtDescIdDesc();
+    }
+
+    @Test
+    @DisplayName("投稿作成_create_アバター色省略時は既定色で保存する")
+    void 投稿作成_create_アバター色省略時は既定色で保存する() {
+        PostService postService = new PostService(postRepository, likeRepository, tagService, fixedClock());
+        given(tagService.resolveTags("本文です")).willReturn(List.of());
+        given(postRepository.save(any(PostEntity.class))).willAnswer(invocation -> {
+            PostEntity entity = invocation.getArgument(0);
+            return new PostEntity(
+                    12L,
+                    entity.getAuthor(),
+                    entity.getAvatarColor(),
+                    entity.getBody(),
+                    entity.getCreatedAt(),
+                    entity.getTags());
+        });
+
+        Post actual = postService.create("alice", "本文です");
+
+        assertThat(actual.getAvatarColor()).isEqualTo("BLUE");
+        verify(tagService).resolveTags("本文です");
+        verify(postRepository).save(any(PostEntity.class));
     }
 
     @Test

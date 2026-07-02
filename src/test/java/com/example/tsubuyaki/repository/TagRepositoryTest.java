@@ -35,6 +35,24 @@ class TagRepositoryTest {
     }
 
     @Test
+    @DisplayName("取得_findByName_存在しない名前はOptional_emptyを返す")
+    void 取得_findByName_存在しない名前はOptional_emptyを返す() {
+        Optional<TagEntity> actual = tagRepository.findByName("Missing");
+
+        assertThat(actual).isEmpty();
+    }
+
+    @Test
+    @DisplayName("取得_findByName_nullはOptional_emptyを返す")
+    void 取得_findByName_nullはOptional_emptyを返す() {
+        tagRepository.saveAndFlush(new TagEntity("Java"));
+
+        Optional<TagEntity> actual = tagRepository.findByName(null);
+
+        assertThat(actual).isEmpty();
+    }
+
+    @Test
     @DisplayName("存在確認_existsByName_同じ名前のタグが存在することを判定する")
     void 存在確認_existsByName_同じ名前のタグが存在することを判定する() {
         tagRepository.saveAndFlush(new TagEntity("Java"));

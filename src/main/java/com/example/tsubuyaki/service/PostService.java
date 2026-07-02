@@ -78,7 +78,7 @@ public class PostService {
 
     @Transactional
     public Post create(String author, String avatarColor, String body) {
-        Post post = new Post(author, avatarColor, body, Instant.now(clock));
+        Post post = Post.create(author, avatarColor, body, Instant.now(clock));
         List<TagEntity> tags = tagService.resolveTags(post.getBody());
         return PostEntityMapper.toDomain(repository.save(PostEntityMapper.toEntity(post, tags)));
     }

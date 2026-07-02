@@ -36,6 +36,26 @@ class LikeRepositoryTest {
     }
 
     @Test
+    @DisplayName("いいね検索_findByPostIdAndClientHash_該当なしはOptional_emptyを返す")
+    void いいね検索_findByPostIdAndClientHash_該当なしはOptional_emptyを返す() {
+        PostEntity post = persistPost();
+
+        assertThat(likeRepository.existsByPostIdAndClientHash(post.getId(), "missing1")).isFalse();
+        assertThat(likeRepository.findByPostIdAndClientHash(post.getId(), "missing1")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("いいね検索_findByPostIdAndClientHash_null条件はOptional_emptyを返す")
+    void いいね検索_findByPostIdAndClientHash_null条件はOptional_emptyを返す() {
+        PostEntity post = persistPost();
+        likeRepository.saveAndFlush(new LikeEntity(post.getId(), "abc12345"));
+        entityManager.clear();
+
+        assertThat(likeRepository.existsByPostIdAndClientHash(post.getId(), null)).isFalse();
+        assertThat(likeRepository.findByPostIdAndClientHash(null, "abc12345")).isEmpty();
+    }
+
+    @Test
     @DisplayName("いいね件数_countByPostId_投稿ごとの件数を返す")
     void いいね件数_countByPostId_投稿ごとの件数を返す() {
         PostEntity target = persistPost();

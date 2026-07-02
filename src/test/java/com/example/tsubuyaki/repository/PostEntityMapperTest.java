@@ -35,7 +35,7 @@ class PostEntityMapperTest {
     @Test
     @DisplayName("EntityMapper_DomainからEntityへ_同じ値を移す")
     void EntityMapper_DomainからEntityへ_同じ値を移す() {
-        Post post = new Post(1L, "alice", "ORANGE", "hello", Instant.parse("2026-06-26T09:00:00Z"));
+        Post post = Post.reconstruct(1L, "alice", "ORANGE", "hello", Instant.parse("2026-06-26T09:00:00Z"));
 
         PostEntity entity = PostEntityMapper.toEntity(post);
 
@@ -49,7 +49,7 @@ class PostEntityMapperTest {
     @Test
     @DisplayName("EntityMapper_DomainからEntityへ_渡されたタグEntityを関連付ける")
     void EntityMapper_DomainからEntityへ_渡されたタグEntityを関連付ける() {
-        Post post = new Post(
+        Post post = Post.reconstruct(
                 1L,
                 "alice",
                 "ORANGE",

@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -78,11 +79,13 @@ class LikeServiceTest {
         LikeService likeService = new LikeService(likeRepository, postRepository);
         LikeEntity concurrentLike = new LikeEntity(1L, "abc12345");
         given(likeRepository.findByPostIdAndClientHash(1L, "abc12345"))
-                .willReturn(Optional.empty(), Optional.of(concurrentLike));
+                .willReturn(Optional.empty())
+                .willReturn(Optional.of(concurrentLike));
         given(postRepository.findById(1L)).willReturn(Optional.of(
                 new PostEntity(1L, "alice", "BLUE", "本文", Instant.parse("2026-06-26T09:00:00Z"))));
-        given(likeRepository.saveAndFlush(any(LikeEntity.class)))
-                .willThrow(new DataIntegrityViolationException("unique constraint"));
+        willThrow(new DataIntegrityViolationException("unique constraint"))
+                .given(likeRepository)
+                .saveAndFlush(any(LikeEntity.class));
 
         likeService.toggleLike(1L, "abc12345");
 
