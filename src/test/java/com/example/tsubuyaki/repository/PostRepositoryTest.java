@@ -177,6 +177,18 @@ class PostRepositoryTest {
     }
 
     @Test
+    @DisplayName("投稿検索_本文と投稿者名の両方に一致する投稿_重複せず1件だけ返す")
+    void 投稿検索_本文と投稿者名の両方に一致する投稿_重複せず1件だけ返す() {
+        persistPost("spring-user", "Spring Boot の共有", Instant.parse("2026-06-26T09:00:00Z"));
+
+        List<PostEntity> posts = postRepository.searchActiveByKeyword("Spring", PageRequest.of(0, 50));
+
+        assertThat(posts)
+                .extracting(PostEntity::getAuthor)
+                .containsExactly("spring-user");
+    }
+
+    @Test
     @DisplayName("投稿検索_1件だけ一致するとき_その1件を返す")
     void 投稿検索_1件だけ一致するとき_その1件を返す() {
         persistPost("alice", "Spring Boot の共有", Instant.parse("2026-06-26T09:00:00Z"));
@@ -317,6 +329,31 @@ class PostRepositoryTest {
                 "Spring");
 
         assertThat(posts).isEmpty();
+    }
+
+    @Test
+    @DisplayName("タグ別一覧_51件以上同時刻であるとき_id降順で50件だけを返す")
+    void タグ別一覧_51件以上同時刻であるとき_id降順で50件だけを返す() {
+        TagEntity java = entityManager.persistAndFlush(new TagEntity("Java"));
+        Instant base = Instant.parse("2026-06-26T09:00:00Z");
+        for (int i = 1; i <= 51; i++) {
+            entityManager.persist(new PostEntity(
+                    null,
+                    "user" + i,
+                    "BLUE",
+                    "Java の共有 #Java " + i,
+                    base,
+                    List.of(java)));
+        }
+        flushAndClear();
+
+        List<PostEntity> posts = postRepository.findTop50ByDeletedAtIsNullAndTagsNameOrderByCreatedAtDescIdDesc("Java");
+
+        assertThat(posts).hasSize(50);
+        assertThat(posts)
+                .extracting(PostEntity::getAuthor)
+                .startsWith("user51", "user50", "user49")
+                .doesNotContain("user1");
     }
 
     @Test

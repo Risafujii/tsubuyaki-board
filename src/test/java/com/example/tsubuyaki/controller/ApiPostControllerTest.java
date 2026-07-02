@@ -95,7 +95,12 @@ class ApiPostControllerTest {
         given(postService.getDetail(999L)).willThrow(new PostNotFoundException(999L));
 
         mockMvc.perform(get("/api/posts/{id}", 999L))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").value("投稿が見つかりません"))
+                .andExpect(jsonPath("$.path").value("/api/posts/999"));
     }
 
     @Test
@@ -139,6 +144,13 @@ class ApiPostControllerTest {
                                   "body": ""
                                 }
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("入力内容を確認してください"))
+                .andExpect(jsonPath("$.path").value("/api/posts"))
+                .andExpect(jsonPath("$.fieldErrors.author").value("投稿者名を入力してください"))
+                .andExpect(jsonPath("$.fieldErrors.body").value("本文を入力してください"));
     }
 }
