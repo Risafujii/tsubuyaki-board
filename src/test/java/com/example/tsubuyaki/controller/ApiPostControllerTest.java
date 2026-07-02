@@ -132,6 +132,21 @@ class ApiPostControllerTest {
     }
 
     @Test
+    @DisplayName("投稿API_POST_api_posts_CSRFトークンなし_403を返す")
+    void 投稿API_POST_api_posts_CSRFトークンなし_403を返す() throws Exception {
+        mockMvc.perform(post("/api/posts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "author": "alice",
+                                  "avatarColor": "BLUE",
+                                  "body": "API から投稿します"
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @DisplayName("投稿API_POST_api_posts_バリデーションエラーは400を返す")
     void 投稿API_POST_api_posts_バリデーションエラーは400を返す() throws Exception {
         mockMvc.perform(post("/api/posts")

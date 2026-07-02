@@ -1,37 +1,35 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>投稿一覧 - 社内つぶやきボード</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}">
-</head>
+<head th:replace="~{fragments/layout :: head('投稿一覧')}"></head>
 <body>
-<main>
-    <h1>社内つぶやきボード</h1>
-    <nav>
-        <a th:href="@{/posts}">一覧</a>
-        |
-        <a th:href="@{/posts/new}">新規投稿</a>
-    </nav>
-    <form class="refresh-form" th:action="@{/posts/}" method="get">
-        <button type="submit">更新</button>
-    </form>
-    <form class="search-form" th:action="@{/posts}" method="get">
-        <label for="q">検索:</label>
-        <input id="q" type="search" name="q" th:value="${query}">
-        <button type="submit">検索</button>
-    </form>
-    <p class="flash-message flash-message--success"
-       th:if="${successMessage != null}"
-       th:text="${successMessage}">投稿を削除しました。</p>
+<header th:replace="~{fragments/layout :: header('posts')}"></header>
+<main class="app-shell">
+    <section class="page-hero">
+        <div>
+            <p class="page-kicker">Timeline</p>
+            <h1>投稿一覧</h1>
+            <p class="page-lead">チームの短い共有を、読みやすく整理して表示します。</p>
+        </div>
+        <form class="refresh-form" th:action="@{/posts/}" method="get">
+            <button class="button button--secondary" type="submit">更新</button>
+        </form>
+    </section>
 
-    <section>
+    <section class="surface">
+        <form class="search-form" th:action="@{/posts}" method="get">
+            <label class="search-form__label" for="q">検索</label>
+            <input class="form-control" id="q" type="search" name="q" th:value="${query}" placeholder="本文・投稿者を検索">
+            <button class="button" type="submit">検索</button>
+        </form>
+        <p class="flash-message flash-message--success"
+           th:if="${successMessage != null}"
+           th:text="${successMessage}">投稿を削除しました。</p>
+
         <h2 class="post-list__heading"
             th:if="${tagName != null}"
             th:text="|#${tagName} の投稿|">#Java の投稿</h2>
-        <p th:if="${#lists.isEmpty(posts) && tagName == null}">まだ投稿はありません。最初の一言を投稿しよう。</p>
-        <p th:if="${#lists.isEmpty(posts) && tagName != null}"
+        <p class="empty-state" th:if="${#lists.isEmpty(posts) && tagName == null}">まだ投稿はありません。最初の一言を投稿しよう。</p>
+        <p class="empty-state" th:if="${#lists.isEmpty(posts) && tagName != null}"
            th:text="|#${tagName} の投稿はまだありません。|">#Java の投稿はまだありません。</p>
         <article class="post" th:each="post : ${posts}">
             <div class="post__author-row">

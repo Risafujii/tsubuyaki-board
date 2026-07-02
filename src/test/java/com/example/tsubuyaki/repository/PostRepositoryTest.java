@@ -156,7 +156,7 @@ class PostRepositoryTest {
         persistPost("new", "Spring Boot の共有", Instant.parse("2026-06-26T11:00:00Z"));
         persistPost("other", "Java の共有", Instant.parse("2026-06-26T10:00:00Z"));
 
-        List<PostEntity> posts = postRepository.findTop50ByDeletedAtIsNullAndBodyContainingOrderByCreatedAtDescIdDesc("Spring");
+        List<PostEntity> posts = postRepository.searchActiveByKeyword("Spring", PageRequest.of(0, 50));
 
         assertThat(posts)
                 .extracting(PostEntity::getAuthor)
@@ -169,11 +169,7 @@ class PostRepositoryTest {
         persistPost("alice", "Java の共有", Instant.parse("2026-06-26T09:00:00Z"));
         persistPost("spring-user", "本文には含まない", Instant.parse("2026-06-26T10:00:00Z"));
 
-        List<PostEntity> posts = postRepository
-                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
-                        "Spring",
-                        "Spring",
-                        PageRequest.of(0, 50));
+        List<PostEntity> posts = postRepository.searchActiveByKeyword("Spring", PageRequest.of(0, 50));
 
         assertThat(posts)
                 .extracting(PostEntity::getAuthor)
@@ -185,11 +181,7 @@ class PostRepositoryTest {
     void 投稿検索_本文と投稿者名の両方に一致する投稿_重複せず1件だけ返す() {
         persistPost("spring-user", "Spring Boot の共有", Instant.parse("2026-06-26T09:00:00Z"));
 
-        List<PostEntity> posts = postRepository
-                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
-                        "Spring",
-                        "Spring",
-                        PageRequest.of(0, 50));
+        List<PostEntity> posts = postRepository.searchActiveByKeyword("Spring", PageRequest.of(0, 50));
 
         assertThat(posts)
                 .extracting(PostEntity::getAuthor)
@@ -202,8 +194,7 @@ class PostRepositoryTest {
         persistPost("alice", "Spring Boot の共有", Instant.parse("2026-06-26T09:00:00Z"));
         persistPost("bob", "Java の共有", Instant.parse("2026-06-26T10:00:00Z"));
 
-        List<PostEntity> posts = postRepository.findTop50ByDeletedAtIsNullAndBodyContainingOrderByCreatedAtDescIdDesc(
-                "Spring");
+        List<PostEntity> posts = postRepository.searchActiveByKeyword("Spring", PageRequest.of(0, 50));
 
         assertThat(posts)
                 .extracting(PostEntity::getAuthor)
@@ -215,18 +206,17 @@ class PostRepositoryTest {
     void 投稿検索_該当なし_空リストを返す() {
         persistPost("alice", "Java の共有", Instant.parse("2026-06-26T09:00:00Z"));
 
-        List<PostEntity> posts = postRepository.findTop50ByDeletedAtIsNullAndBodyContainingOrderByCreatedAtDescIdDesc("NoHit");
+        List<PostEntity> posts = postRepository.searchActiveByKeyword("NoHit", PageRequest.of(0, 50));
 
         assertThat(posts).isEmpty();
     }
 
     @Test
-    @DisplayName("投稿検索_nullキーワード_本文null検索として空リストを返す")
-    void 投稿検索_nullキーワード_本文null検索として空リストを返す() {
+    @DisplayName("投稿検索_nullキーワード_検索結果を返さない")
+    void 投稿検索_nullキーワード_検索結果を返さない() {
         persistPost("alice", "Java の共有", Instant.parse("2026-06-26T09:00:00Z"));
 
-        List<PostEntity> posts = postRepository.findTop50ByDeletedAtIsNullAndBodyContainingOrderByCreatedAtDescIdDesc(
-                null);
+        List<PostEntity> posts = postRepository.searchActiveByKeyword(null, PageRequest.of(0, 50));
 
         assertThat(posts).isEmpty();
     }
@@ -240,8 +230,7 @@ class PostRepositoryTest {
         persistPost("active", "Spring visible", Instant.parse("2026-06-26T08:00:00Z"));
         flushAndClear();
 
-        List<PostEntity> posts = postRepository.findTop50ByDeletedAtIsNullAndBodyContainingOrderByCreatedAtDescIdDesc(
-                "Spring");
+        List<PostEntity> posts = postRepository.searchActiveByKeyword("Spring", PageRequest.of(0, 50));
 
         assertThat(posts)
                 .extracting(PostEntity::getAuthor)

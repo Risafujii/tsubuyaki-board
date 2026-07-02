@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head th:fragment="head(pageTitle)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="|${pageTitle} - 社内つぶやきボード|">社内つぶやきボード</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="app-header" th:fragment="header(active)">
+    <div class="app-header__inner">
+        <a class="app-brand" th:href="@{/posts}" aria-label="社内つぶやきボード ホーム">
+            <span class="app-brand__mark" aria-hidden="true">T</span>
+            <span class="app-brand__text">社内つぶやきボード</span>
+        </a>
+        <nav class="app-nav" aria-label="主要ナビゲーション">
+            <a class="app-nav__link"
+               th:classappend="${active == 'posts'} ? ' app-nav__link--active'"
+               th:href="@{/posts}">投稿一覧</a>
+            <a class="app-nav__link"
+               th:classappend="${active == 'new'} ? ' app-nav__link--active'"
+               th:href="@{/posts/new}">新規投稿</a>
+        </nav>
+        <div class="theme-control">
+            <label class="theme-control__label" for="theme-selector">テーマ</label>
+            <select class="theme-selector" id="theme-selector" aria-label="テーマカラー">
+                <option value="blue">ブルー</option>
+                <option value="green">グリーン</option>
+                <option value="purple">パープル</option>
+                <option value="red">レッド</option>
+                <option value="orange">オレンジ</option>
+                <option value="dark">ダーク</option>
+            </select>
+        </div>
+    </div>
+</header>
+<script th:fragment="scripts" th:src="@{/js/theme.js}" defer></script>
+</body>
+</html>

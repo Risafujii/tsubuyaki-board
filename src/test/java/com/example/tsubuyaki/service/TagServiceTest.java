@@ -12,7 +12,10 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -65,6 +68,22 @@ class TagServiceTest {
 
         assertThat(actual).containsExactly(existing);
         verify(tagRepository).findByName("Java");
+        verify(tagRepository, never()).save(any(TagEntity.class));
+    }
+
+    @Test
+    @DisplayName("タグ登録_新規タグがあるとき_保存したタグを返す")
+    void タグ登録_新規タグがあるとき_保存したタグを返す() {
+        TagService tagService = new TagService(tagRepository);
+        TagEntity saved = new TagEntity(1L, "Java");
+        given(tagRepository.findByName("Java")).willReturn(Optional.empty());
+        given(tagRepository.save(any(TagEntity.class))).willReturn(saved);
+
+        List<TagEntity> actual = tagService.resolveTags("#Java");
+
+        assertThat(actual).containsExactly(saved);
+        verify(tagRepository).findByName("Java");
+        verify(tagRepository).save(argThat(tag -> "Java".equals(tag.getName())));
     }
 
     @Test

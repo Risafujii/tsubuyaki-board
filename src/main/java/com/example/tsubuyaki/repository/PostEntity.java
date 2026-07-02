@@ -121,6 +121,9 @@ public class PostEntity {
     }
 
     public void markDeleted(Instant deletedAt) {
+        if (deletedAt == null) {
+            throw new IllegalArgumentException("deletedAt must not be null");
+        }
         this.deletedAt = deletedAt;
     }
 

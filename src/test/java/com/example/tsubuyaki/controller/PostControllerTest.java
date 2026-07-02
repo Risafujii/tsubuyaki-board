@@ -64,6 +64,13 @@ class PostControllerTest {
     @BeforeEach
     void setUp() {
         given(postFormOptions.avatarColors()).willReturn(List.of("RED", "BLUE", "GREEN", "YELLOW", "PURPLE", "ORANGE"));
+        given(postFormOptions.avatarColorOptions()).willReturn(List.of(
+                new PostFormOptions.AvatarColorOption("RED", "赤", "post__avatar-color--red"),
+                new PostFormOptions.AvatarColorOption("BLUE", "青", "post__avatar-color--blue"),
+                new PostFormOptions.AvatarColorOption("GREEN", "緑", "post__avatar-color--green"),
+                new PostFormOptions.AvatarColorOption("YELLOW", "黄", "post__avatar-color--yellow"),
+                new PostFormOptions.AvatarColorOption("PURPLE", "紫", "post__avatar-color--purple"),
+                new PostFormOptions.AvatarColorOption("ORANGE", "オレンジ", "post__avatar-color--orange")));
     }
 
     @Test
@@ -76,6 +83,8 @@ class PostControllerTest {
                 .andExpect(view().name("posts/list"))
                 .andExpect(model().attribute("posts", List.of()))
                 .andExpect(content().string(containsString("まだ投稿はありません")))
+                .andExpect(content().string(containsString("theme-selector")))
+                .andExpect(content().string(containsString("/js/theme.js")))
                 .andExpect(content().string(not(containsString(PostController.DELETE_SUCCESS_MESSAGE))));
     }
 
@@ -140,6 +149,7 @@ class PostControllerTest {
                 .andExpect(model().attribute("query", "Spring"))
                 .andExpect(content().string(containsString("Spring Boot の共有です")))
                 .andExpect(content().string(containsString("♥ 4")))
+                .andExpect(content().string(containsString("本文・投稿者を検索")))
                 .andExpect(content().string(containsString("value=\"Spring\"")))
                 .andReturn();
 
@@ -199,6 +209,7 @@ class PostControllerTest {
                 .andExpect(model().attribute("likeCount", 15L))
                 .andExpect(content().string(containsString("♥ 15")))
                 .andExpect(content().string(containsString("Like")))
+                .andExpect(content().string(containsString("theme-selector")))
                 .andReturn();
 
         String html = result.getResponse().getContentAsString();
@@ -225,7 +236,9 @@ class PostControllerTest {
 
         mockMvc.perform(get("/posts/{id}", 999L))
                 .andExpect(status().isNotFound())
-                .andExpect(view().name("error/404"));
+                .andExpect(view().name("error/404"))
+                .andExpect(content().string(containsString("投稿が見つかりません")))
+                .andExpect(content().string(containsString("指定された投稿は存在しないか、削除されています。")));
     }
 
     @Test
@@ -245,19 +258,31 @@ class PostControllerTest {
                 .andExpect(view().name("posts/form"))
                 .andExpect(model().attribute("postForm", instanceOf(PostForm.class)))
                 .andExpect(model().attributeExists("avatarColors"))
+                .andExpect(model().attributeExists("avatarColorOptions"))
                 .andExpect(content().string(containsString("avatarColor")))
                 .andReturn();
 
         assertThat(result.getResponse().getContentAsString())
                 .contains("<form class=\"post-form\"")
                 .contains("<div class=\"post-form__field\">")
-                .contains("class=\"post-form__control\"")
-                .contains("<option value=\"RED\">赤</option>")
-                .contains("<option value=\"BLUE\" selected=\"selected\">青</option>")
-                .contains("<option value=\"GREEN\">緑</option>")
-                .contains("<option value=\"YELLOW\">黄</option>")
-                .contains("<option value=\"PURPLE\">紫</option>")
-                .contains("<option value=\"ORANGE\">オレンジ</option>")
+                .contains("post-form__control form-control")
+                .contains("class=\"avatar-color-picker\"")
+                .contains("type=\"radio\"")
+                .contains("value=\"RED\"")
+                .contains("value=\"BLUE\"")
+                .contains("checked=\"checked\"")
+                .contains("post__avatar-color--red")
+                .contains("post__avatar-color--blue")
+                .contains("post__avatar-color--green")
+                .contains("post__avatar-color--yellow")
+                .contains("post__avatar-color--purple")
+                .contains("post__avatar-color--orange")
+                .contains("aria-label=\"青\"")
+                .doesNotContain("id=\"avatarColor\"")
+                .doesNotContain("name=\"avatarColor\">\n                <option")
+                .doesNotContain(">赤<")
+                .doesNotContain(">青<")
+                .doesNotContain(">緑<")
                 .doesNotContain(">RED</option>")
                 .doesNotContain(">BLUE</option>")
                 .doesNotContain(">PURPLE</option>");
@@ -395,6 +420,23 @@ class PostControllerTest {
     @DisplayName("投稿作成_body281文字以上_フォームを再表示してエラー情報を含める")
     void 投稿作成_body281文字以上_フォームを再表示してエラー情報を含める() throws Exception {
         assertInvalidPost("alice", "あ".repeat(281), "本文は 280 文字以内で入力してください", "body");
+    }
+
+    @Test
+    @DisplayName("投稿作成_avatarColor不正_フォームを再表示してエラー情報を含める")
+    void 投稿作成_avatarColor不正_フォームを再表示してエラー情報を含める() throws Exception {
+        mockMvc.perform(post("/posts")
+                        .with(csrf())
+                        .param("author", "alice")
+                        .param("avatarColor", "BLACK")
+                        .param("body", "本文があります"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("posts/form"))
+                .andExpect(model().attributeHasFieldErrors("postForm", "avatarColor"))
+                .andExpect(content().string(containsString("アバター色を選択してください")));
+
+        verify(postService, never()).create(anyString(), anyString());
+        verify(postService, never()).create(anyString(), anyString(), anyString());
     }
 
     @Test

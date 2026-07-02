@@ -39,6 +39,21 @@ class PostFormTest {
         assertThat(form.getAvatarColor()).isEqualTo("BLUE");
     }
 
+    @Test
+    @DisplayName("投稿フォーム選択肢_avatarColorOptions_値表示名CSSクラスを返す")
+    void 投稿フォーム選択肢_avatarColorOptions_値表示名CSSクラスを返す() {
+        PostFormOptions options = new PostFormOptions();
+
+        assertThat(options.avatarColorOptions())
+                .extracting(
+                        PostFormOptions.AvatarColorOption::value,
+                        PostFormOptions.AvatarColorOption::displayName,
+                        PostFormOptions.AvatarColorOption::cssClass)
+                .contains(
+                        org.assertj.core.api.Assertions.tuple("BLUE", "青", "post__avatar-color--blue"),
+                        org.assertj.core.api.Assertions.tuple("ORANGE", "オレンジ", "post__avatar-color--orange"));
+    }
+
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {"", "   ", "　　"})

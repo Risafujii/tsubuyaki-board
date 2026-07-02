@@ -78,6 +78,11 @@ public class PostController {
         return postFormOptions.avatarColors();
     }
 
+    @ModelAttribute("avatarColorOptions")
+    public List<PostFormOptions.AvatarColorOption> avatarColorOptions() {
+        return postFormOptions.avatarColorOptions();
+    }
+
     @PostMapping("/posts/{id}/likes")
     public String toggleLike(@PathVariable Long id, HttpServletRequest request) {
         String clientHash = clientHashService.generate(

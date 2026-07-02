@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RepositoryEntityTest {
 
@@ -21,6 +22,16 @@ class RepositoryEntityTest {
 
         assertThat(post.getDeletedAt()).isEqualTo(Instant.parse("2026-06-26T10:00:00Z"));
         assertThat(post.isDeleted()).isTrue();
+    }
+
+    @Test
+    @DisplayName("PostEntity_markDeleted_nullは例外を投げる")
+    void PostEntity_markDeleted_nullは例外を投げる() {
+        PostEntity post = postEntity(1L);
+
+        assertThatThrownBy(() -> post.markDeleted(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("deletedAt");
     }
 
     @Test

@@ -55,11 +55,7 @@ public class PostService {
             return latest();
         }
         String strippedKeyword = keyword.strip();
-        return toDomainList(repository
-                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
-                        strippedKeyword,
-                        strippedKeyword,
-                        searchPage()));
+        return toDomainList(repository.searchActiveByKeyword(strippedKeyword, searchPage()));
     }
 
     public List<PostDetail> findPostDetails(String keyword) {

@@ -62,10 +62,7 @@ class PostServiceTest {
     void 投稿検索_searchPosts_本文部分一致で検索する() {
         PostService postService = new PostService(postRepository, likeRepository, tagService, fixedClock());
         given(postRepository
-                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
-                        anyString(),
-                        anyString(),
-                        any(Pageable.class)))
+                .searchActiveByKeyword(anyString(), any(Pageable.class)))
                 .willReturn(List.of(
                 new PostEntity(1L, "alice", "GREEN", "Spring Boot の共有です", Instant.parse("2026-06-26T09:00:00Z"))));
 
@@ -76,8 +73,7 @@ class PostServiceTest {
                 .containsExactly("Spring Boot の共有です");
         assertThat(actual.get(0).getAvatarColor()).isEqualTo("GREEN");
         verify(postRepository)
-                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
-                        "Spring",
+                .searchActiveByKeyword(
                         "Spring",
                         PageRequest.of(0, 50, Sort.by(Sort.Direction.DESC, "createdAt", "id")));
         verify(postRepository, never()).findTop50ByDeletedAtIsNullOrderByCreatedAtDescIdDesc();
@@ -97,10 +93,7 @@ class PostServiceTest {
                 .containsExactly("hello");
         verify(postRepository).findTop50ByDeletedAtIsNullOrderByCreatedAtDescIdDesc();
         verify(postRepository, never())
-                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
-                        anyString(),
-                        anyString(),
-                        any(Pageable.class));
+                .searchActiveByKeyword(anyString(), any(Pageable.class));
     }
 
     @Test
@@ -117,10 +110,7 @@ class PostServiceTest {
                 .containsExactly("hello");
         verify(postRepository).findTop50ByDeletedAtIsNullOrderByCreatedAtDescIdDesc();
         verify(postRepository, never())
-                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
-                        anyString(),
-                        anyString(),
-                        any(Pageable.class));
+                .searchActiveByKeyword(anyString(), any(Pageable.class));
     }
 
     @Test
@@ -137,10 +127,7 @@ class PostServiceTest {
                 .containsExactly("hello");
         verify(postRepository).findTop50ByDeletedAtIsNullOrderByCreatedAtDescIdDesc();
         verify(postRepository, never())
-                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
-                        anyString(),
-                        anyString(),
-                        any(Pageable.class));
+                .searchActiveByKeyword(anyString(), any(Pageable.class));
     }
 
     @Test
@@ -157,10 +144,7 @@ class PostServiceTest {
                 .containsExactly("hello");
         verify(postRepository).findTop50ByDeletedAtIsNullOrderByCreatedAtDescIdDesc();
         verify(postRepository, never())
-                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
-                        anyString(),
-                        anyString(),
-                        any(Pageable.class));
+                .searchActiveByKeyword(anyString(), any(Pageable.class));
     }
 
     @Test
@@ -168,10 +152,7 @@ class PostServiceTest {
     void 投稿一覧_findPosts_検索条件ありは本文部分一致で検索する() {
         PostService postService = new PostService(postRepository, likeRepository, tagService, fixedClock());
         given(postRepository
-                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
-                        anyString(),
-                        anyString(),
-                        any(Pageable.class)))
+                .searchActiveByKeyword(anyString(), any(Pageable.class)))
                 .willReturn(List.of(
                 new PostEntity(1L, "alice", "GREEN", "Spring Boot の共有です", Instant.parse("2026-06-26T09:00:00Z"))));
 
@@ -181,8 +162,7 @@ class PostServiceTest {
                 .extracting(Post::getBody)
                 .containsExactly("Spring Boot の共有です");
         verify(postRepository)
-                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
-                        "Spring",
+                .searchActiveByKeyword(
                         "Spring",
                         PageRequest.of(0, 50, Sort.by(Sort.Direction.DESC, "createdAt", "id")));
         verify(postRepository, never()).findTop50ByDeletedAtIsNullOrderByCreatedAtDescIdDesc();
@@ -216,10 +196,7 @@ class PostServiceTest {
     void 投稿一覧_findPostDetails_検索結果にいいね数を付けて返す() {
         PostService postService = new PostService(postRepository, likeRepository, tagService, fixedClock());
         given(postRepository
-                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
-                        anyString(),
-                        anyString(),
-                        any(Pageable.class)))
+                .searchActiveByKeyword(anyString(), any(Pageable.class)))
                 .willReturn(List.of(
                 new PostEntity(1L, "spring-user", "BLUE", "本文には含まない", Instant.parse("2026-06-26T09:00:00Z"))));
         given(likeRepository.countByPostId(1L)).willReturn(6L);
@@ -233,8 +210,7 @@ class PostServiceTest {
                 .extracting(detail -> detail.post().getAuthor())
                 .containsExactly("spring-user");
         verify(postRepository)
-                .findByDeletedAtIsNullAndBodyContainingIgnoreCaseOrDeletedAtIsNullAndAuthorContainingIgnoreCase(
-                        "Spring",
+                .searchActiveByKeyword(
                         "Spring",
                         PageRequest.of(0, 50, Sort.by(Sort.Direction.DESC, "createdAt", "id")));
         verify(likeRepository).countByPostId(1L);
@@ -381,6 +357,27 @@ class PostServiceTest {
                 .containsExactly("Javaの共有 #Java");
         assertThat(actual.get(0).getTagNames()).containsExactly("Java");
         verify(postRepository).findTop50ByDeletedAtIsNullAndTagsNameOrderByCreatedAtDescIdDesc("Java");
+    }
+
+    @Test
+    @DisplayName("タグ別一覧_findPostDetailsByTag_いいね数を付けて返す")
+    void タグ別一覧_findPostDetailsByTag_いいね数を付けて返す() {
+        PostService postService = new PostService(postRepository, likeRepository, tagService, fixedClock());
+        given(postRepository.findTop50ByDeletedAtIsNullAndTagsNameOrderByCreatedAtDescIdDesc("Java")).willReturn(List.of(
+                new PostEntity(1L, "alice", "BLUE", "Javaの共有 #Java", Instant.parse("2026-06-26T09:00:00Z"),
+                        List.of(new TagEntity(1L, "Java")))));
+        given(likeRepository.countByPostId(1L)).willReturn(9L);
+
+        List<PostDetail> actual = postService.findPostDetailsByTag("Java");
+
+        assertThat(actual)
+                .extracting(PostDetail::likeCount)
+                .containsExactly(9L);
+        assertThat(actual)
+                .extracting(detail -> detail.post().getTagNames())
+                .containsExactly(List.of("Java"));
+        verify(postRepository).findTop50ByDeletedAtIsNullAndTagsNameOrderByCreatedAtDescIdDesc("Java");
+        verify(likeRepository).countByPostId(1L);
     }
 
     @Test
